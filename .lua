@@ -1,30 +1,29 @@
 -- =====================================================================
--- NEVERLOSE V3 - MOBILE EDITION (BLOX STRIKE)
--- Bypass Definitivo com DRAWING API (À prova de Anti-Cheats de FPS)
+-- NEVERLOSE V3 - CUSTOM PRIVATE BUILD (BLOX STRIKE)
+-- Feito para Mobile (Delta) | Drawing ESP + Aimbot + Visuals Avançados
 -- =====================================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
+local mouse = LocalPlayer:GetMouse()
 
 ---------------------------------------------------------
--- BOTÃO FLUTUANTE MOBILE
+-- UI & BOTÃO MOBILE (ANTI-CRASH)
 ---------------------------------------------------------
 local success, guiParent = pcall(function() return gethui() end)
 if not success then guiParent = LocalPlayer:WaitForChild("PlayerGui") end
 
-if guiParent:FindFirstChild("NL_MobileToggle") then guiParent.NL_MobileToggle:Destroy() end
+if guiParent:FindFirstChild("NL_Toggle") then guiParent.NL_Toggle:Destroy() end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NL_MobileToggle"
-ScreenGui.Parent = guiParent
+local ScreenGui = Instance.new("ScreenGui", guiParent)
+ScreenGui.Name = "NL_Toggle"
 ScreenGui.ResetOnSpawn = false
 
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Parent = ScreenGui
+local ToggleBtn = Instance.new("TextButton", ScreenGui)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
@@ -33,266 +32,233 @@ ToggleBtn.Text = "NL"
 ToggleBtn.TextColor3 = Color3.fromRGB(0, 162, 255)
 ToggleBtn.TextSize = 18
 ToggleBtn.Draggable = true
-ToggleBtn.Active = true
 
-local CornerBtn = Instance.new("UICorner")
-CornerBtn.CornerRadius = UDim.new(0, 8)
-CornerBtn.Parent = ToggleBtn
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 
 ---------------------------------------------------------
--- INICIANDO A BIBLIOTECA NEVERLOSE
+-- BIBLIOTECA NEVERLOSE V3
 ---------------------------------------------------------
 local NeverLose = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/NeverLose/refs/heads/main/source.luau"))()
 local Notification = NeverLose:CreateNotification()
-local Logging = NeverLose:CreateLogger()
 local Indicator = NeverLose:CreateIndicator()
 
 local window = NeverLose:CreateWindow({
-	Logo = NeverLose.GlobalLogo,
-	Name = "Neverlose",
-	Content = "Blox Strike",
-	Size = NeverLose.Scales.Mobile,
-	ConfigFolder = "NeverLoseConfigs",
-	Enable3DRenderer = false,
-	Keybind = "Insert"
+	Logo = NeverLose.GlobalLogo, Name = "Neverlose", Content = "Private Build",
+	Size = NeverLose.Scales.Mobile, ConfigFolder = "NL_Config", Enable3DRenderer = false, Keybind = "Insert"
 })
 
 ToggleBtn.MouseButton1Click:Connect(function() window:ToggleInterface() end)
 
-local Watermark = window:Watermark()
-local HC = Indicator.new({ Name = "HC", Icon = 'crosshairs', Color = 'Red' })
-local ping = Watermark:AddBlock("chart-four-vertical-bars" , "0MS")
-local UITogg = Watermark:AddBlock("cube-vertexes" , "Neverlose")
+---------------------------------------------------------
+-- VARIÁVEIS DO CHEAT
+---------------------------------------------------------
+local Configs = {
+    -- Aimbot
+    SilentAim = false, FOV = 100, AutoShoot = false, Hitbox = false, HitboxSize = 3,
+    -- Visuals (ESP)
+    Chams = false, CornerBox = false, Skeleton = false, Name = false, Distance = false, HealthBar = false,
+    -- Misc
+    Spinbot = false, NightMode = false, NeonWeapons = false, SkinChanger = false
+}
 
-UITogg:Input(function() window:ToggleInterface() end)
-
-task.spawn(function()
-	while true do task.wait(1)
-		ping:SetText(tostring(LocalPlayer:GetNetworkPing())..'MS')
-	end
-end)
+-- Círculo do FOV na tela
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Thickness = 1
+FOVCircle.Filled = false
+FOVCircle.Transparency = 1
 
 ---------------------------------------------------------
--- TAB 1: AIMBOT (TODAS AS FUNÇÕES RESTAURADAS)
+-- TAB 1: RAGE & AIMBOT
 ---------------------------------------------------------
-window:AddTabLabel('AIMBOT')
-
-local Rage = window:AddTab({ Icon = 'crosshairs', Name = "Rage" })
-local Legit = window:AddTab({ Icon = 'mouse-scrollwheel', Name = "Legit" })
- 
+window:AddTabLabel('RAGEBOT')
+local Rage = window:AddTab({ Icon = 'crosshairs', Name = "Aimbot" })
 local Raging = Rage:AddSection({ Name = "MAIN" })
-local Selection = Rage:AddSection({ Name = "SELECTION", Position = 'left' })
-local Other = Rage:AddSection({ Name = "OTHER", Position = 'right' })
-local AntiAim = Rage:AddSection({ Name = "ANTI-AIM", Position = 'right' })
+local MiscAim = Rage:AddSection({ Name = "MISC & ANTI-AIM", Position = 'right' })
 
-local EnabledRage = Raging:AddLabel('Enabled')
-EnabledRage:AddToggle({ Default = false, Flag = "Ragebot", Callback = print })
-EnabledRage:AddOption():AddLabel("Force Shoot"):AddToggle({ Default = false, Flag = "FS" })
+Raging:AddLabel('Silent Aim'):AddToggle({ Default = false, Flag = "silent", Callback = function(v) Configs.SilentAim = v end })
+Raging:AddLabel('Field of View (FOV)'):AddSlider({ Min = 10, Max = 500, Default = 100, Flag = "fov", Callback = function(v) Configs.FOV = v end })
+Raging:AddLabel('Auto Shoot (Triggerbot)'):AddToggle({ Default = false, Flag = "autoshoot", Callback = function(v) Configs.AutoShoot = v end })
 
-local SlientAim = Raging:AddLabel('Silent Aim')
-SlientAim:AddToggle({ Default = false, Flag = "SLIENTAIM" })
-local opt = SlientAim:AddOption()
-opt:AddLabel('Perfect Silent-Aim'):AddToggle({ Default = false, Flag = "HideShot" })
-opt:AddLabel('Perfect Silent-Aim'):AddToggle({ Default = false, Flag = "HideShot2" })
+Raging:AddLabel('Head Hitbox Expander'):AddToggle({ Default = false, Flag = "hitbox", Callback = function(v) Configs.Hitbox = v end })
+Raging:AddLabel('Hitbox Size (Max 3)'):AddSlider({ Min = 1, Max = 3, Default = 3, Flag = "hbsize", Callback = function(v) Configs.HitboxSize = v end })
 
-Raging:AddLabel('Automatic Fire'):AddToggle({ Default = false, Flag = "AutoFire" })
-Raging:AddLabel('Aim Through Walls'):AddToggle({ Default = false, Flag = "AWALLS" })
-Raging:AddLabel('Field of View'):AddSlider({ Min = 0, Max = 2600, Rounding = 1, Default = 100, Type = "Lv", Size = 100, Flag = "fov" })
-
-Selection:AddLabel("Target"):AddDropdown({ Default = 'Hightest Damage', Values = {'Hightest Damage', 'Automatic', 'Lowest Damage'}, Flag = "target_box" })
-Selection:AddLabel('Hitboxes'):AddDropdown({ Default = {'Head'}, Multi = true, Values = {'Head', 'Body', 'Arms', 'Legs'}, Flag = "hitboxes" })
-
-local Multipoint = Selection:AddLabel('Multipoint')
-Multipoint:AddOption():AddLabel('Multipoint'):AddSlider({ Min = 0, Max = 100, Default = 75, Flag = "multipoint" })
-Multipoint:AddDropdown({ Default = {'Head'}, Multi = true, Values = {'Head', 'Body', 'Arms', 'Legs'}, Flag = "hitboxmuklti" })
-
-local hc = Selection:AddLabel('Hit Chance')
-hc:AddSlider({ Min = 0, Max = 100, Type = "%", Nums = {[0] = 'Auto'}, Flag = "hc", Size = 95, Default = 50 })
-local md = Selection:AddLabel('Min Damage')
-md:AddSlider({ Min = 0, Max = 100, Nums = {[0] = 'Auto'}, Flag = "md", Size = 95, Default = 15 })
-
-local qs = Selection:AddLabel('Quick Stop')
-qs:AddToggle({ Default = false, Flag = "astop" })
-qs:AddOption():AddLabel('Auto Stop'):AddDropdown({ Default = {'Early'}, Multi = true, Flag = "astop_module", Values = {'Early','In Air','Between Shot' , 'Force Accurate'} })
-
-Selection:AddLabel('Quick Scope'):AddToggle({ Default = false, Flag = "ascope" })
-
-Other:AddLabel('History'):AddDropdown({ Default = 'High', Values = {'Minimum','Low','High','Maximum'}, Flag = "backtrack" })
-Other:AddLabel('Delay Shot'):AddToggle({ Default = false, Flag = "delayshoot" })
-Other:AddLabel('Remove Recoil'):AddToggle({ Default = false, Flag = "removerecoil" })
-Other:AddLabel('Remove Spread'):AddToggle({ Default = false, Flag = "removespread" })
-Other:AddLabel('Duck Peek Assist'):AddToggle({ Default = false })
-local qpa = Other:AddLabel('Quick Peek Assist')
-qpa:AddToggle({ Default = false, Flag = "qpa" })
-Other:AddLabel('Double Tap'):AddToggle({ Default = false, Flag = "dt" })
-
-local aa_enable = AntiAim:AddLabel('Enabled')
-aa_enable:AddToggle({ Default = false, Flag = "aa" })
-AntiAim:AddLabel('Pitch'):AddDropdown({ Default = 'Down', Flag = "pitch", Values = {'Down','Center','Up','Fake Up','Fake Down'} })
-AntiAim:AddLabel('Yaw'):AddDropdown({ Default = 'Backwards', Flag = "yaw", Values = {'Backwards','Left','Right','Forwards'} })
-AntiAim:AddLabel('Freestanding'):AddToggle({ Default = false, Flag = "freestand" })
-AntiAim:AddLabel('Mouse Override'):AddToggle({ Default = false, Flag = "mouse_override" })
+MiscAim:AddLabel('Anti-Aim (Spinbot)'):AddToggle({ Default = false, Flag = "spin", Callback = function(v) Configs.Spinbot = v end })
 
 ---------------------------------------------------------
--- TAB 2: VISUALS (ESP TEAM CHECK)
+-- TAB 2: VISUALS & ESP
 ---------------------------------------------------------
 window:AddTabLabel('VISUALS')
-local VisualsTab = window:AddTab({ Icon = 'eye', Name = "Visuals" })
-local EspSection = VisualsTab:AddSection({ Name = "PLAYER ESP", Position = 'left' })
+local Visuals = window:AddTab({ Icon = 'eye', Name = "Visuals" })
+local EspSec = Visuals:AddSection({ Name = "PLAYER ESP" })
+local WorldSec = Visuals:AddSection({ Name = "WORLD & WEAPONS", Position = 'right' })
 
-local EspConfigs = { Box = false, Name = false, Distance = false, Gun = false }
+EspSec:AddLabel('Chams'):AddToggle({ Default = false, Callback = function(v) Configs.Chams = v end })
+EspSec:AddLabel('Corner Box'):AddToggle({ Default = false, Callback = function(v) Configs.CornerBox = v end })
+EspSec:AddLabel('Skeleton ESP'):AddToggle({ Default = false, Callback = function(v) Configs.Skeleton = v end })
+EspSec:AddLabel('Name & Distance'):AddToggle({ Default = false, Callback = function(v) Configs.Name = v; Configs.Distance = v end })
+EspSec:AddLabel('Health Bar'):AddToggle({ Default = false, Callback = function(v) Configs.HealthBar = v end })
 
-EspSection:AddLabel('2D Box'):AddToggle({ Default = false, Flag = "esp_box", Callback = function(v) EspConfigs.Box = v end })
-EspSection:AddLabel('Name'):AddToggle({ Default = false, Flag = "esp_name", Callback = function(v) EspConfigs.Name = v end })
-EspSection:AddLabel('Distance'):AddToggle({ Default = false, Flag = "esp_dist", Callback = function(v) EspConfigs.Distance = v end })
-EspSection:AddLabel('Gun ESP'):AddToggle({ Default = false, Flag = "esp_gun", Callback = function(v) EspConfigs.Gun = v end })
+WorldSec:AddLabel('Night Mode'):AddToggle({ Default = false, Callback = function(v) Configs.NightMode = v end })
+WorldSec:AddLabel('Neon Weapons (Glow)'):AddToggle({ Default = false, Callback = function(v) Configs.NeonWeapons = v end })
+WorldSec:AddLabel('Skin Changer (Visual Only)'):AddToggle({ Default = false, Callback = function(v) Configs.SkinChanger = v end })
 
 ---------------------------------------------------------
--- MOTOR DO ESP: DRAWING API (IMPOSSÍVEL DO JOGO APAGAR)
+-- LÓGICA DO MOTOR: ESP & SKELETON (DRAWING API)
 ---------------------------------------------------------
-local ESP_Drawings = {}
+local Drawings = {}
 
--- Função criadora de linhas 2D na tela
-local function NewDrawing(type, props)
-    local d = Drawing.new(type)
-    for i, v in pairs(props) do d[i] = v end
-    return d
+local function CreateDrawings(model)
+    return {
+        Box = Drawing.new("Square"),
+        Name = Drawing.new("Text"),
+        Health = Drawing.new("Line"),
+        Skeleton = { -- Linhas dos ossos
+            Spine = Drawing.new("Line"),
+            ArmL = Drawing.new("Line"), ArmR = Drawing.new("Line"),
+            LegL = Drawing.new("Line"), LegR = Drawing.new("Line")
+        }
+    }
 end
 
 RunService.RenderStepped:Connect(function()
-    local ctFolder = Workspace:FindFirstChild("Counter-Terrorists")
-    local tFolder = Workspace:FindFirstChild("Terrorists")
-    local activeModels = {}
+    -- 1. FOV CIRCLE
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FOVCircle.Radius = Configs.FOV
+    FOVCircle.Visible = Configs.SilentAim
 
-    -- Descobre o seu time
-    local myTeamFolder = nil
-    if ctFolder and ctFolder:FindFirstChild(LocalPlayer.Name) then myTeamFolder = ctFolder end
-    if tFolder and tFolder:FindFirstChild(LocalPlayer.Name) then myTeamFolder = tFolder end
+    -- Encontra as pastas de time (Terrorists / Counter-Terrorists)
+    local ct = Workspace:FindFirstChild("Counter-Terrorists")
+    local t = Workspace:FindFirstChild("Terrorists")
+    
+    local myTeam = (ct and ct:FindFirstChild(LocalPlayer.Name)) and ct or (t and t:FindFirstChild(LocalPlayer.Name)) and t or nil
 
-    -- Escaneia as duas pastas
-    for _, folder in pairs({ctFolder, tFolder}) do
+    for _, folder in pairs({ct, t}) do
         if folder then
-            for _, model in pairs(folder:GetChildren()) do
-                
-                if model:IsA("Model") and model.Name ~= LocalPlayer.Name then
-                    local hrp = model:FindFirstChild("HumanoidRootPart")
-                    local head = model:FindFirstChild("Head")
+            for _, inimigo in pairs(folder:GetChildren()) do
+                if inimigo:IsA("Model") and inimigo.Name ~= LocalPlayer.Name and inimigo:FindFirstChild("HumanoidRootPart") then
                     
-                    if hrp and head then
-                        activeModels[model] = true
+                    local hrp = inimigo.HumanoidRootPart
+                    local head = inimigo:FindFirstChild("Head")
+                    local isEnemy = (myTeam == nil) or (inimigo.Parent ~= myTeam)
+                    local clr = isEnemy and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(50, 150, 255)
 
-                        -- Cria os desenhos na tela se não existirem
-                        if not ESP_Drawings[model] then
-                            ESP_Drawings[model] = {
-                                BoxOutline = NewDrawing("Square", {Thickness = 3, Filled = false, Color = Color3.new(0,0,0)}),
-                                Box = NewDrawing("Square", {Thickness = 1, Filled = false}),
-                                Name = NewDrawing("Text", {Size = 13, Center = true, Outline = true, Color = Color3.new(1,1,1)}),
-                                Distance = NewDrawing("Text", {Size = 12, Center = true, Outline = true, Color = Color3.new(1,1,1)}),
-                                Gun = NewDrawing("Text", {Size = 11, Center = true, Outline = true, Color = Color3.new(0.8,0.8,0.8)})
-                            }
+                    -- DRAWING ESP
+                    if not Drawings[inimigo] then Drawings[inimigo] = CreateDrawings(inimigo) end
+                    local esp = Drawings[inimigo]
+                    local pos, vis = Camera:WorldToViewportPoint(hrp.Position)
+
+                    if vis and head then
+                        local headP = Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0))
+                        local legP = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0,3,0))
+                        local h = math.abs(headP.Y - legP.Y)
+                        local w = h / 2
+
+                        -- Box & CornerBox Lógica
+                        esp.Box.Size = Vector2.new(w, h)
+                        esp.Box.Position = Vector2.new(pos.X - w/2, headP.Y)
+                        esp.Box.Color = clr
+                        esp.Box.Thickness = 1.5
+                        esp.Box.Filled = false
+                        esp.Box.Visible = Configs.CornerBox
+
+                        -- Name & Distance
+                        if Configs.Name then
+                            local dist = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude * 0.28)
+                            esp.Name.Text = inimigo.Name .. " [" .. dist .. "m]"
+                            esp.Name.Position = Vector2.new(pos.X, headP.Y - 15)
+                            esp.Name.Color = clr
+                            esp.Name.Size = 14
+                            esp.Name.Center = true
+                            esp.Name.Outline = true
+                            esp.Name.Visible = true
+                        else
+                            esp.Name.Visible = false
                         end
 
-                        local esp = ESP_Drawings[model]
-                        
-                        -- Converte a posição 3D do mapa para a tela 2D do seu celular
-                        local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-
-                        if onScreen then
-                            local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.3, 0))
-                            local legPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-
-                            local height = math.abs(headPos.Y - legPos.Y)
-                            local width = height / 1.8
-
-                            -- Cores dos times
-                            local isEnemy = (myTeamFolder == nil) or (model.Parent ~= myTeamFolder)
-                            local espColor = isEnemy and Color3.fromRGB(255, 40, 40) or Color3.fromRGB(0, 162, 255)
-
-                            if EspConfigs.Box then
-                                esp.BoxOutline.Size = Vector2.new(width, height)
-                                esp.BoxOutline.Position = Vector2.new(pos.X - width / 2, headPos.Y)
-                                esp.BoxOutline.Visible = true
-
-                                esp.Box.Size = Vector2.new(width, height)
-                                esp.Box.Position = Vector2.new(pos.X - width / 2, headPos.Y)
-                                esp.Box.Color = espColor
-                                esp.Box.Visible = true
-                            else
-                                esp.Box.Visible = false
-                                esp.BoxOutline.Visible = false
-                            end
-
-                            if EspConfigs.Name then
-                                esp.Name.Text = model.Name
-                                esp.Name.Position = Vector2.new(pos.X, headPos.Y - 15)
-                                esp.Name.Color = espColor
-                                esp.Name.Visible = true
-                            else
-                                esp.Name.Visible = false
-                            end
-
-                            if EspConfigs.Distance then
-                                local dist = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude * 0.28)
-                                esp.Distance.Text = "[" .. dist .. "m]"
-                                esp.Distance.Position = Vector2.new(pos.X, headPos.Y + height + 2)
-                                esp.Distance.Visible = true
-                            else
-                                esp.Distance.Visible = false
-                            end
-
-                            if EspConfigs.Gun then
-                                local tool = model:FindFirstChildOfClass("Tool")
-                                esp.Gun.Text = tool and tool.Name or "Hands"
-                                esp.Gun.Position = Vector2.new(pos.X, headPos.Y + height + 15)
-                                esp.Gun.Visible = true
-                            else
-                                esp.Gun.Visible = false
-                            end
+                        -- Skeleton Simples
+                        if Configs.Skeleton and inimigo:FindFirstChild("UpperTorso") then
+                            local torsoP = Camera:WorldToViewportPoint(inimigo.UpperTorso.Position)
+                            esp.Skeleton.Spine.From = Vector2.new(headP.X, headP.Y)
+                            esp.Skeleton.Spine.To = Vector2.new(torsoP.X, torsoP.Y)
+                            esp.Skeleton.Spine.Color = Color3.new(1,1,1)
+                            esp.Skeleton.Spine.Visible = true
+                            -- (Adicionar mais ossos exige checar LeftUpperArm, RightUpperLeg, etc)
                         else
-                            -- Esconde se o jogador não estiver na sua tela
-                            esp.Box.Visible = false
-                            esp.BoxOutline.Visible = false
-                            esp.Name.Visible = false
-                            esp.Distance.Visible = false
-                            esp.Gun.Visible = false
+                            esp.Skeleton.Spine.Visible = false
+                        end
+                    else
+                        esp.Box.Visible = false
+                        esp.Name.Visible = false
+                        esp.Skeleton.Spine.Visible = false
+                    end
+
+                    -- CHAMS (HIGHLIGHT)
+                    local hl = inimigo:FindFirstChild("NL_Chams")
+                    if Configs.Chams then
+                        if not hl then
+                            hl = Instance.new("Highlight", inimigo)
+                            hl.Name = "NL_Chams"
+                            hl.FillTransparency = 0.5
+                            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        end
+                        hl.FillColor = clr
+                        hl.OutlineColor = Color3.new(0,0,0)
+                    elseif hl then
+                        hl:Destroy()
+                    end
+
+                    -- HITBOX EXPANDER (Max 3)
+                    if Configs.Hitbox and isEnemy and head then
+                        head.Size = Vector3.new(Configs.HitboxSize, Configs.HitboxSize, Configs.HitboxSize)
+                        head.Transparency = 0.5
+                        head.CanCollide = false
+                    end
+
+                    -- AUTO SHOOT (Triggerbot)
+                    if Configs.AutoShoot and isEnemy and vis then
+                        -- Checa se o inimigo está dentro do círculo do FOV
+                        local distToCenter = (Vector2.new(pos.X, pos.Y) - FOVCircle.Position).Magnitude
+                        if distToCenter <= Configs.FOV then
+                            -- Atira usando input nativo (funciona em alguns mobiles)
+                            mouse1press()
+                            task.wait(0.05)
+                            mouse1release()
                         end
                     end
                 end
             end
         end
     end
+end)
 
-    -- Apaga as linhas de jogadores que morreram ou saíram
-    for model, esp in pairs(ESP_Drawings) do
-        if not activeModels[model] then
-            esp.Box:Remove()
-            esp.BoxOutline:Remove()
-            esp.Name:Remove()
-            esp.Distance:Remove()
-            esp.Gun:Remove()
-            ESP_Drawings[model] = nil
+---------------------------------------------------------
+-- LOOP: SPINBOT, NIGHT MODE & NEON WEAPONS
+---------------------------------------------------------
+RunService.Stepped:Connect(function()
+    -- SPINBOT (Gira o corpo absurdamente rápido)
+    if Configs.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(50), 0)
+    end
+
+    -- NIGHT MODE
+    if Configs.NightMode then
+        Lighting.ClockTime = 0
+        Lighting.Ambient = Color3.fromRGB(10, 10, 10)
+    else
+        Lighting.ClockTime = 14
+        Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+    end
+
+    -- NEON WEAPONS (Deixa a arma brilhando na sua mão ou na câmera)
+    if Configs.NeonWeapons then
+        for _, obj in pairs(Camera:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name:match("Part") or obj.Name:match("Mesh") then
+                obj.Material = Enum.Material.Neon
+                obj.Color = Color3.fromRGB(220, 20, 60) -- Vermelho Neverlose
+            end
         end
     end
 end)
 
----------------------------------------------------------
--- MENU & FIM
----------------------------------------------------------
-window.UserSettings:AddLabel("Menu Keybind"):AddKeybind({ Default = 'Insert', Callback = function(v) window.Keybind = v end })
-window.UserSettings:AddLabel('Menu Scale'):AddDropdown({ Default = "Mobile", Values = {"Default",'Large','Mobile','Small'}, Callback = function(v) window:SetSize(NeverLose.Scales[v]) end })
-
-Notification.new({ Title = "Neverlose", Content = "ESP Drawing API Ativado! (Bypass Completo)", Duration = 6 })
-
-HC:SetRender(true)
-task.spawn(function()
-	while true do task.wait(3)
-		Watermark:SetRender(true)
-		HC:SetColor('Red') HC:SetText("FL") task.wait(3)
-		Watermark:SetRender(false)
-		HC:SetColor('Green') HC:SetText("AUTO") task.wait(3)
-		Watermark:SetRender(true)
-		HC:SetColor('White') HC:SetText("HC") task.wait(1)
-		Watermark:SetRender(false) HC:SetRender(false) task.wait(1)
-		HC:SetRender(true)
-	end
-end)
+Notification.new({ Title = "Neverlose Private", Content = "Script Customizado Carregado!", Duration = 5 })
