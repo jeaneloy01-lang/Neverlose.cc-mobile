@@ -1,178 +1,256 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+-- Usando a Library Original
+local NeverLose = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/NeverLose/refs/heads/main/source.luau"))()
 
--- 1. Notificação para confirmar que o botão Execute funcionou
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Delta Executor",
-    Text = "Injetando Neverlose...",
-    Duration = 3
-})
+---------------------------------------------------------
+-- BOTÃO FLUTUANTE MOBILE (INJETADO ANTES DA UI)
+---------------------------------------------------------
+local CoreGui = game:GetService("CoreGui")
+local success, guiParent = pcall(function() return gethui() end)
+if not success then guiParent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui") end
 
--- 2. Bypass de CoreGui para Mobile (Delta)
-local guiParent
-if gethui then
-    guiParent = gethui()
-else
-    guiParent = game:GetService("CoreGui")
+if guiParent:FindFirstChild("NL_MobileToggle") then
+    guiParent.NL_MobileToggle:Destroy()
 end
 
--- Se o Delta bloquear o CoreGui, joga direto na tela do jogador
-local success = pcall(function()
-    local test = Instance.new("ScreenGui")
-    test.Parent = guiParent
-    test:Destroy()
-end)
-
-if not success then
-    guiParent = LocalPlayer:WaitForChild("PlayerGui")
-end
-
--- Limpa a versão anterior se você executar duas vezes
-if guiParent:FindFirstChild("NeverloseMobile") then
-    guiParent.NeverloseMobile:Destroy()
-end
-
--- 3. Criação da Interface
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NeverloseMobile"
+ScreenGui.Name = "NL_MobileToggle"
 ScreenGui.Parent = guiParent
-ScreenGui.ResetOnSpawn = false -- Impede que a UI suma quando você morrer
 
--- Botão Flutuante (NL)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Parent = ScreenGui
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
 ToggleBtn.Font = Enum.Font.SourceSansBold
 ToggleBtn.Text = "NL"
 ToggleBtn.TextColor3 = Color3.fromRGB(0, 162, 255)
-ToggleBtn.TextSize = 20
+ToggleBtn.TextSize = 18
 ToggleBtn.Draggable = true
 ToggleBtn.Active = true
 
 local CornerBtn = Instance.new("UICorner")
 CornerBtn.CornerRadius = UDim.new(0, 8)
 CornerBtn.Parent = ToggleBtn
+---------------------------------------------------------
 
--- Janela Principal
-local MainFrame = Instance.new("Frame")
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -135)
-MainFrame.Size = UDim2.new(0, 400, 0, 270)
-MainFrame.Draggable = true
-MainFrame.Active = true
-MainFrame.Visible = false -- Começa escondida, clique no botão "NL" para abrir
+-- Notificações e Logger
+local Notification = NeverLose:CreateNotification();
+local Logging = NeverLose:CreateLogger();
+local Indicator = NeverLose:CreateIndicator();
 
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 6)
-MainCorner.Parent = MainFrame
+-- Criando a Janela (AGORA COM ESCALA MOBILE)
+local window = NeverLose:CreateWindow({
+	Logo = NeverLose.GlobalLogo,
+	Name = "Neverlose",
+	Content = "Counter-Strike 2",
+	Size = NeverLose.Scales.Mobile, -- AQUI: Ajustado para caber na tela do celular
+	ConfigFolder = "NeverLoseConfigs",
+	Enable3DRenderer = false,
+	Keybind = "Insert"
+});
 
--- Barra Superior
-local TopBar = Instance.new("Frame")
-TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-
-local TopCorner = Instance.new("UICorner")
-TopCorner.CornerRadius = UDim.new(0, 6)
-TopCorner.Parent = TopBar
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Parent = TopBar
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Position = UDim2.new(0.03, 0, 0, 0)
-TitleLabel.Size = UDim2.new(0.8, 0, 1, 0)
-TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Text = "NEVERLOSE  |  Blox Strike"
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.TextSize = 14
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
--- Área de Rolagem
-local Content = Instance.new("ScrollingFrame")
-Content.Parent = MainFrame
-Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 10, 0, 45)
-Content.Size = UDim2.new(1, -20, 1, -55)
-Content.CanvasSize = UDim2.new(0, 0, 1.5, 0)
-Content.ScrollBarThickness = 4
-
-local UIList = Instance.new("UIListLayout")
-UIList.Parent = Content
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
-UIList.Padding = UDim.new(0, 8)
-
--- Função de criar os Toggles
-local function createToggle(name, callback)
-    local btn = Instance.new("TextButton")
-    btn.Parent = Content
-    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-    btn.Size = UDim2.new(1, 0, 0, 35)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.Text = "  " .. name .. " [ OFF ]"
-    btn.TextColor3 = Color3.fromRGB(180, 180, 180)
-    btn.TextSize = 14
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 4)
-    c.Parent = btn
-
-    local enabled = false
-    btn.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        if enabled then
-            btn.Text = "  " .. name .. " [ ON ]"
-            btn.TextColor3 = Color3.fromRGB(0, 162, 255)
-        else
-            btn.Text = "  " .. name .. " [ OFF ]"
-            btn.TextColor3 = Color3.fromRGB(180, 180, 180)
-        end
-        if callback then callback(enabled) end
-    end)
-end
-
--- Adicionando Cheats
-createToggle("ESP Chams (Visual)", function(v)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            if v then
-                if not p.Character:FindFirstChild("NL_Chams") then
-                    local h = Instance.new("Highlight")
-                    h.Name = "NL_Chams"
-                    h.FillColor = Color3.fromRGB(0, 162, 255)
-                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    h.Parent = p.Character
-                end
-            else
-                if p.Character:FindFirstChild("NL_Chams") then
-                    p.Character.NL_Chams:Destroy()
-                end
-            end
-        end
-    end
-end)
-
-createToggle("Hitbox Expander", function(v)
-    _G.HitboxStatus = v
-    while _G.HitboxStatus do
-        task.wait(1)
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                p.Character.HumanoidRootPart.Size = Vector3.new(10, 10, 10)
-                p.Character.HumanoidRootPart.Transparency = 0.5
-                p.Character.HumanoidRootPart.BrickColor = BrickColor.new("Bright blue")
-                p.Character.HumanoidRootPart.CanCollide = false
-            end
-        end
-    end
-end)
-
--- Sistema de abrir e fechar a aba
-local isOpen = false
+-- Conectando o Botão Flutuante à Janela
 ToggleBtn.MouseButton1Click:Connect(function()
-    isOpen = not isOpen
-    MainFrame.Visible = isOpen
+    window:ToggleInterface()
+end)
+
+-- Watermark
+local Watermark = window:Watermark();
+
+-- Indicator (Hit-Chance)
+local HC = Indicator.new({
+	Name = "HC",
+	Icon = 'crosshairs',
+	Color = 'Red',
+})
+
+window:AddTabLabel('AIMBOT')
+
+local ping = Watermark:AddBlock("chart-four-vertical-bars" , "0MS");
+local UITogg = Watermark:AddBlock("cube-vertexes" , "Neverlose");
+
+UITogg:Input(function()
+	window:ToggleInterface();
+end);
+
+task.spawn(function()
+	while true do task.wait(1)
+		ping:SetText(tostring(game:GetService('Players').LocalPlayer:GetNetworkPing())..'MS')
+	end
+end)
+
+-- Criando Abas
+local Rage = window:AddTab({
+	Icon = 'crosshairs',
+	Name = "Rage",
+})
+
+local Legit = window:AddTab({
+	Icon = 'mouse-scrollwheel',
+	Name = "Legit"
+})
+ 
+local Raging = Rage:AddSection({ Name = "MAIN" })
+local Selection = Rage:AddSection({ Name = "SELECTION", Position = 'left' })
+local Other = Rage:AddSection({ Name = "OTHER", Position = 'right' })
+local AntiAim = Rage:AddSection({ Name = "ANTI-AIM", Position = 'right' })
+
+Raging:AddLabel('Ts so skbidi\nfr noi cap',true)
+
+local EnabledRage = Raging:AddLabel('Enabled')
+local SlientAim = Raging:AddLabel('Silent Aim')
+
+EnabledRage:ToolTip("Dynamically adjusts grenade throw angles to counteract\nmovement velocity, allowing precise straight-line throws\neven while strafing")
+EnabledRage:AddToggle({
+	Default = false,
+	Callback = print,
+	Flag = "Ragebot",
+})
+
+EnabledRage:AddOption():AddLabel("Force Shoot"):AddToggle({
+	Default = false,
+	Callback = print,
+	Flag = "FS"
+})
+
+SlientAim:AddToggle({
+	Default = false,
+	Callback = print,
+	Flag = "SLIENTAIM",
+})
+
+local opt = SlientAim:AddOption();
+opt:AddLabel('Perfect Silent-Aim'):AddToggle({
+	Default = false,
+	Callback = print,
+	Flag = "HideShot",
+})
+
+opt:AddLabel('Perfect Silent-Aim'):AddToggle({
+	Default = false,
+	Callback = print,
+	Flag = "HideShot2",
+})
+
+Raging:AddLabel('Automatic Fire'):AddToggle({ Default = false, Flag = "AutoFire" })
+Raging:AddLabel('Aim Through Walls'):AddToggle({ Default = false, Flag = "AWALLS" })
+
+Raging:AddLabel('Field of View'):AddSlider({
+	Min = 0, Max = 2600, Rounding = 1, Default = 100, Type = "Lv", Size = 100, Callback = print, Flag = "fov",
+})
+
+Selection:AddLabel("Target"):AddDropdown({
+	Default = 'Hightest Damage',
+	Values = {'Hightest Damage', 'Automatic', 'Lowest Damage'},
+	Callback = print, Flag = "target_box",
+})
+
+Selection:AddLabel('Hitboxes'):AddDropdown({
+	Default = {'Head'}, Multi = true,
+	Values = {'Head', 'Body', 'Arms', 'Legs'},
+	Flag = "hitboxes", Callback = print
+})
+
+local Multipoint = Selection:AddLabel('Multipoint')
+Multipoint:AddOption():AddLabel('Multipoint'):AddSlider({ Min = 0, Max = 100, Default = 75, Flag = "multipoint", Callback = print })
+Multipoint:AddDropdown({ Default = {'Head'}, Multi = true, Values = {'Head', 'Body', 'Arms', 'Legs'}, Flag = "hitboxmuklti", Callback = print })
+
+local hc = Selection:AddLabel('Hit Chance')
+hc:AddSlider({ Min = 0, Max = 100, Type = "%", Nums = {[0] = 'Auto'}, Flag = "hc", Size = 95, Default = 50 })
+hc:AddOption():AddLabel('Something'):AddToggle({ Default = false })
+
+local md = Selection:AddLabel('Min Damage')
+md:AddSlider({ Min = 0, Max = 100, Nums = {[0] = 'Auto'}, Flag = "md", Size = 95, Default = 15 })
+md:AddOption():AddLabel('Something'):AddToggle({ Default = false })
+
+local qs = Selection:AddLabel('Quick Stop')
+qs:AddToggle({ Default = false, Flag = "astop", Callback = print })
+qs:AddOption():AddLabel('Auto Stop'):AddDropdown({ Default = {'Early'}, Multi = true, Flag = "astop_module", Values = {'Early','In Air','Between Shot' , 'Force Accurate'}, Callback = print })
+
+Selection:AddLabel('Quick Scope'):AddToggle({ Default = false, Flag = "ascope", Callback = print })
+Other:AddLabel('History'):AddDropdown({ Default = 'High', Values = {'Minimum','Low','High','Maximum'}, Flag = "backtrack", Callback = print })
+Other:AddLabel('Delay Shot'):AddToggle({ Default = false, Flag = "delayshoot", Callback = print })
+Other:AddLabel('Remove Recoil'):AddToggle({ Default = false, Flag = "removerecoil", Callback = print })
+Other:AddLabel('Remove Spread'):AddToggle({ Default = false, Flag = "removespread", Callback = print })
+Other:AddLabel('Duck Peek Assist'):AddToggle({ Default = false, Callback = print })
+
+local qpa = Other:AddLabel('Quick Peek Assist');
+qpa:AddToggle({ Default = false, Flag = "qpa", Callback = print })
+qpa:AddOption():AddLabel('Something tung tung')
+
+Other:AddLabel('Double Tap'):AddToggle({ Default = false, Callback = print, Flag = "dt" })
+
+local aa_enable = AntiAim:AddLabel('Enabled');
+aa_enable:AddToggle({ Default = false, Flag = "aa", Callback = print })
+aa_enable:AddOption():AddLabel('Resolvers tung tung'):AddToggle({ Default = false, Callback = print })
+
+AntiAim:AddLabel('Pitch'):AddDropdown({ Default = 'Down', Flag = "pitch", Values = {'Down','Center','Up','Fake Up','Fake Down'} })
+AntiAim:AddLabel('Yaw'):AddDropdown({ Default = 'Backwards', Flag = "yaw", Values = {'Backwards','Left','Right','Forwards'} })
+AntiAim:AddLabel('Freestanding'):AddToggle({ Default = false, Flag = "freestand", Callback = print })
+AntiAim:AddLabel('Mouse Override'):AddToggle({ Default = false, Flag = "mouse_override", Callback = print })
+
+---------- Menu Configuration ------------
+window.UserSettings:AddLabel("Menu Keybind"):AddKeybind({
+	Default = 'Insert',
+	Callback = function(v)
+		window.Keybind = v;
+		Logging.new("ps4-touchpad",'Changed ui keybind to '..tostring(v),5)
+	end,
+})
+
+window.UserSettings:AddLabel('Menu Scale'):AddDropdown({
+	Default = "Mobile", -- AQUI: Deixei Mobile por padrão na config também
+	Values = {"Default",'Large','Mobile','Small'},
+	Callback = function(v)
+		window:SetSize(NeverLose.Scales[v]);
+		Logging.new("crop",'Changed ui size to '..tostring(v),5)
+	end,
+})
+
+window.UserSettings:AddLabel('3D Menu'):AddToggle({
+	Default = false,
+	Callback = function(v)
+		window:Set3DRender(v);
+	end,
+})
+
+window.UserSettings:AddButton({
+	Icon = 'discord',
+	Name = 'Discord',
+	Callback = function()
+		print('invite')
+		Logging.new("discord",'Copied discord invite link',5)
+	end,
+})
+
+Notification.new({ Title = "Notification", Content = "This is Neverlose Notification", Duration = 5 })
+task.wait(1)
+Notification.new({ Title = "Neverlose Mobile", Content = "Interface otimizada injetada!", Duration = 5 })
+
+Logging.new("crosshairs",'Hit thatguy in the neck for 100 damage',15)
+task.wait(1)
+Logging.new("crosshairs-slash",'Missed shot due to prediction error',15)
+
+HC:SetRender(true);
+
+-- Loop final corrigido
+task.spawn(function()
+    while true do task.wait(3)
+        Watermark:SetRender(true);
+        HC:SetColor('Red')
+        HC:SetText("FL")
+        task.wait(3);
+        Watermark:SetRender(false);
+        HC:SetColor('Green');
+        HC:SetText("AUTO")
+        task.wait(3)
+        Watermark:SetRender(true);
+        HC:SetColor('White')
+        HC:SetText("HC")
+        task.wait(1)
+        Watermark:SetRender(false);
+        HC:SetRender(false);
+        task.wait(1)
+        HC:SetRender(true);
+    end
 end)
