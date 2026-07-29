@@ -1,18 +1,18 @@
 -- =====================================================================
--- PROJECT: NEVERLOSE CUSTOM PRIVATE (BLOX STRIKE MOBILE)
--- Lógica Dinâmica de Times + Motor Híbrido 3D/2D
+-- NEVERLOSE V3 - MOBILE EDITION (BLOX STRIKE)
+-- Fix do Quadrado Gigante (BoundingBox) + Raycast Silent Aim
 -- =====================================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+local VirtualUser = game:GetService("VirtualUser")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
 ---------------------------------------------------------
--- UI & BLINDAGEM DO ESP
+-- UI & BLINDAGEM DO SISTEMA
 ---------------------------------------------------------
 local success, guiParent = pcall(function() return gethui() end)
 if not success then guiParent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -23,7 +23,6 @@ local ScreenGui = Instance.new("ScreenGui", guiParent)
 ScreenGui.Name = "NL_System"
 ScreenGui.ResetOnSpawn = false
 
--- Pasta invisível que o jogo não consegue detectar nem deletar
 local ESP_Container = Instance.new("Folder", ScreenGui)
 ESP_Container.Name = "Safe_ESP"
 
@@ -38,81 +37,98 @@ ToggleBtn.TextSize = 18
 ToggleBtn.Draggable = true
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 
+-- FOV CIRCLE (2D GUI)
+local FovGui = Instance.new("ScreenGui", ESP_Container)
+local FovFrame = Instance.new("Frame", FovGui)
+FovFrame.BackgroundTransparency = 1
+FovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+FovFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+local FovCorner = Instance.new("UICorner", FovFrame)
+FovCorner.CornerRadius = UDim.new(1, 0)
+local FovStroke = Instance.new("UIStroke", FovFrame)
+FovStroke.Color = Color3.fromRGB(255, 255, 255)
+FovStroke.Thickness = 1.2
+
 ---------------------------------------------------------
 -- BIBLIOTECA NEVERLOSE
 ---------------------------------------------------------
 local NeverLose = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/NeverLose/refs/heads/main/source.luau"))()
 local Notification = NeverLose:CreateNotification()
+
 local window = NeverLose:CreateWindow({
 	Logo = NeverLose.GlobalLogo, Name = "Neverlose", Content = "Private Build",
 	Size = NeverLose.Scales.Mobile, ConfigFolder = "NL_Configs", Enable3DRenderer = false, Keybind = "Insert"
 })
 
 ToggleBtn.MouseButton1Click:Connect(function() window:ToggleInterface() end)
-local Watermark = window:Watermark()
-local ping = Watermark:AddBlock("chart-four-vertical-bars", "0MS")
-task.spawn(function() while task.wait(1) do ping:SetText(tostring(LocalPlayer:GetNetworkPing())..'MS') end end)
 
 ---------------------------------------------------------
--- VARIÁVEIS DE CONFIGURAÇÃO
+-- VARIÁVEIS DO HACK
 ---------------------------------------------------------
 local CFG = {
-    -- Aimbot / Rage
-    AutoShoot = false, SilentAim = false, FOV = 120, Hitbox = false, HitboxSize = 3, SpinBot = false,
+    -- Rage
+    SilentAim = false, FOV = 120, HideFov = false, AutoShoot = false, Hitbox = false, HitboxSize = 3, SpinBot = false,
     -- Visuals
     Chams = false, CornerBox = false, Skeleton = false, NameDist = false, Health = false, Gun = false,
     -- World
-    NightMode = false, NeonChams = false, SkinChanger = false, SkinMode = "Gold"
+    NightMode = false, NeonChams = false
 }
 
--- FOV Ring Nativo
-local FOVRing = Instance.new("Frame", ScreenGui)
-FOVRing.BackgroundTransparency = 1
-FOVRing.Position = UDim2.new(0.5, 0, 0.5, 0)
-FOVRing.AnchorPoint = Vector2.new(0.5, 0.5)
-local FOVStroke = Instance.new("UIStroke", FOVRing)
-FOVStroke.Color = Color3.fromRGB(255, 255, 255)
-FOVStroke.Thickness = 1.5
+local ClosestEnemyAim = nil
 
 ---------------------------------------------------------
--- TAB 1: RAGEBOT & AIMBOT
+-- TABS & TOGGLES
 ---------------------------------------------------------
 window:AddTabLabel('RAGEBOT')
 local Rage = window:AddTab({ Icon = 'crosshairs', Name = "Aimbot" })
 local MainAim = Rage:AddSection({ Name = "MAIN" })
 local AntiAim = Rage:AddSection({ Name = "ANTI-AIM", Position = 'right' })
 
-MainAim:AddLabel('Silent Aim (CamLock)'):AddToggle({ Default = false, Callback = function(v) CFG.SilentAim = v end })
-MainAim:AddLabel('Field of View (FOV)'):AddSlider({ Min = 10, Max = 400, Default = 120, Callback = function(v) CFG.FOV = v end })
-MainAim:AddLabel('Auto Shoot (Trigger)'):AddToggle({ Default = false, Callback = function(v) CFG.AutoShoot = v end })
+MainAim:AddLabel('Silent Aim (Raycast)'):AddToggle({ Default = false, Callback = function(v) CFG.SilentAim = v end })
+MainAim:AddLabel('Hide Silent Aim Fov'):AddToggle({ Default = false, Callback = function(v) CFG.HideFov = v end })
+MainAim:AddLabel('Field of View'):AddSlider({ Min = 10, Max = 400, Default = 120, Callback = function(v) CFG.FOV = v end })
+MainAim:AddLabel('Auto Shoot'):AddToggle({ Default = false, Callback = function(v) CFG.AutoShoot = v end })
 MainAim:AddLabel('Head Hitbox Expander'):AddToggle({ Default = false, Callback = function(v) CFG.Hitbox = v end })
 MainAim:AddLabel('Hitbox Size (Max 3)'):AddSlider({ Min = 1, Max = 3, Default = 3, Callback = function(v) CFG.HitboxSize = v end })
 
 AntiAim:AddLabel('Spinbot (Rage)'):AddToggle({ Default = false, Callback = function(v) CFG.SpinBot = v end })
 
----------------------------------------------------------
--- TAB 2: VISUALS
----------------------------------------------------------
 window:AddTabLabel('VISUALS')
 local Visuals = window:AddTab({ Icon = 'eye', Name = "Visuals" })
 local EspSec = Visuals:AddSection({ Name = "PLAYER ESP" })
 local WorldSec = Visuals:AddSection({ Name = "WORLD & WEAPONS", Position = 'right' })
 
-EspSec:AddLabel('Neon Chams'):AddToggle({ Default = false, Callback = function(v) CFG.Chams = v end })
+EspSec:AddLabel('Chams'):AddToggle({ Default = false, Callback = function(v) CFG.Chams = v end })
 EspSec:AddLabel('Corner Box'):AddToggle({ Default = false, Callback = function(v) CFG.CornerBox = v end })
-EspSec:AddLabel('Skeleton ESP'):AddToggle({ Default = false, Callback = function(v) CFG.Skeleton = v end })
 EspSec:AddLabel('Name & Distance'):AddToggle({ Default = false, Callback = function(v) CFG.NameDist = v end })
 EspSec:AddLabel('Health Bar'):AddToggle({ Default = false, Callback = function(v) CFG.Health = v end })
 EspSec:AddLabel('Gun ESP'):AddToggle({ Default = false, Callback = function(v) CFG.Gun = v end })
 
 WorldSec:AddLabel('Night Mode'):AddToggle({ Default = false, Callback = function(v) CFG.NightMode = v end })
-WorldSec:AddLabel('Weapon Skin Changer'):AddToggle({ Default = false, Callback = function(v) CFG.SkinChanger = v end })
-WorldSec:AddLabel('Skin Material'):AddDropdown({ Default = 'Gold', Values = {'Gold', 'ForceField', 'Neon', 'Diamond'}, Callback = function(v) CFG.SkinMode = v end })
+WorldSec:AddLabel('Neon Weapons (Glow)'):AddToggle({ Default = false, Callback = function(v) CFG.NeonChams = v end })
 
 ---------------------------------------------------------
--- MOTOR LÓGICO: A IDENTIFICAÇÃO DINÂMICA
+-- HOOK DE SILENT AIM (BYPASS DE FPS)
 ---------------------------------------------------------
--- Essa função resolve o bug do lobby. Ela descobre seu time toda hora.
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if CFG.SilentAim and ClosestEnemyAim and (method == "Raycast" or method == "FindPartOnRayWithIgnoreList") then
+        if method == "Raycast" then
+            args[2] = (ClosestEnemyAim.Position - args[1]).Unit * 1000
+        elseif method == "FindPartOnRayWithIgnoreList" then
+            args[1] = Ray.new(args[1].Origin, (ClosestEnemyAim.Position - args[1].Origin).Unit * 1000)
+        end
+        return oldNamecall(self, unpack(args))
+    end
+    return oldNamecall(self, ...)
+end)
+
+---------------------------------------------------------
+-- FUNÇÕES DO ESP E LOOP PRINCIPAL
+---------------------------------------------------------
 local function GetTeams()
     local ct = Workspace:FindFirstChild("Counter-Terrorists")
     local t = Workspace:FindFirstChild("Terrorists")
@@ -124,40 +140,28 @@ local function GetTeams()
     return myTeam, ct, t
 end
 
--- Estrutura para os ossos do Skeleton (baseado na sua print R15)
-local BonesMap = {
-    {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
-    {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
-    {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
-    {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
-    {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
-}
-
 local ActiveESP = {}
 
 RunService.RenderStepped:Connect(function()
-    -- 1. Atualiza FOV
-    FOVRing.Size = UDim2.new(0, CFG.FOV * 2, 0, CFG.FOV * 2)
-    FOVRing.Visible = (CFG.SilentAim or CFG.AutoShoot)
+    FovFrame.Size = UDim2.new(0, CFG.FOV * 2, 0, CFG.FOV * 2)
+    FovFrame.Visible = (CFG.SilentAim and not CFG.HideFov)
 
-    -- 2. Sistema de Times Dinâmico
     local myTeam, ctFolder, tFolder = GetTeams()
     local foldersToScan = {}
     if ctFolder then table.insert(foldersToScan, {ctFolder, "CT"}) end
     if tFolder then table.insert(foldersToScan, {tFolder, "T"}) end
 
-    -- Limpa ESP de mortos/desconectados
     for model, esp in pairs(ActiveESP) do
         if not model.Parent or (model.Parent ~= ctFolder and model.Parent ~= tFolder) then
             esp.Container:Destroy()
+            esp.BoxGui:Destroy()
             ActiveESP[model] = nil
         end
     end
 
-    local closestEnemy = nil
     local closestDist = CFG.FOV
+    ClosestEnemyAim = nil
 
-    -- 3. Varredura Total
     for _, data in ipairs(foldersToScan) do
         local folder, teamName = data[1], data[2]
         
@@ -167,22 +171,18 @@ RunService.RenderStepped:Connect(function()
                 local hrp = enemy:FindFirstChild("HumanoidRootPart")
                 local hum = enemy:FindFirstChild("Humanoid")
 
-                if head and hrp then
-                    -- Lógica Inimigo/Lobby (Se no lobby, todos são inimigos)
+                if head and hrp and hum and hum.Health > 0 then
                     local isEnemy = (myTeam == "None") or (myTeam ~= teamName)
-                    local clr = isEnemy and Color3.fromRGB(255, 40, 40) or Color3.fromRGB(40, 160, 255)
+                    local clr = isEnemy and Color3.fromRGB(220, 20, 60) or Color3.fromRGB(40, 160, 255)
 
-                    -- CRIA O ESP BLINDADO NA TELA SE NÃO EXISTIR
                     if not ActiveESP[enemy] then
-                        local esp = { Container = Instance.new("Folder", ESP_Container), Lines = {} }
+                        local esp = { Container = Instance.new("Folder", ESP_Container) }
                         
-                        -- Chams
                         esp.HL = Instance.new("Highlight", esp.Container)
                         esp.HL.Adornee = enemy
                         esp.HL.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                         esp.HL.OutlineTransparency = 1
                         
-                        -- HUD (Nome, HP, Arma, Distância)
                         esp.BB = Instance.new("BillboardGui", esp.Container)
                         esp.BB.Adornee = head
                         esp.BB.Size = UDim2.new(4, 0, 3, 0)
@@ -206,7 +206,6 @@ RunService.RenderStepped:Connect(function()
                         esp.Weapon.TextStrokeTransparency = 0
                         esp.Weapon.TextColor3 = Color3.fromRGB(200, 200, 200)
 
-                        -- Corner Box Nativo 2D
                         esp.BoxGui = Instance.new("ScreenGui", ESP_Container)
                         esp.Box = Instance.new("Frame", esp.BoxGui)
                         esp.Box.BackgroundTransparency = 1
@@ -214,21 +213,10 @@ RunService.RenderStepped:Connect(function()
                         stroke.Thickness = 2
                         esp.BoxStroke = stroke
 
-                        -- Skeleton Lines
-                        for _, bone in pairs(BonesMap) do
-                            local line = Instance.new("LineHandleAdornment", esp.Container)
-                            line.Thickness = 3
-                            line.AlwaysOnTop = true
-                            table.insert(esp.Lines, {line, bone[1], bone[2]})
-                        end
-
                         ActiveESP[enemy] = esp
                     end
 
-                    -- ATUALIZA O ESP
                     local esp = ActiveESP[enemy]
-                    
-                    -- Atualiza Textos
                     local dist = math.floor((Camera.CFrame.Position - hrp.Position).Magnitude * 0.28)
                     esp.Text.Text = enemy.Name .. " [" .. dist .. "m]"
                     
@@ -237,81 +225,90 @@ RunService.RenderStepped:Connect(function()
                     
                     if hum then
                         local hp = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-                        esp.Text.TextColor3 = Color3.fromRGB(255, hp * 255, 0) -- Muda de verde pra vermelho
+                        esp.Text.TextColor3 = Color3.fromRGB(255, hp * 255, 0)
                     end
 
-                    -- Visibilidade HUD
                     esp.BB.Enabled = (CFG.NameDist or CFG.Gun or CFG.Health)
                     esp.Text.Visible = (CFG.NameDist or CFG.Health)
                     esp.Weapon.Visible = CFG.Gun
-
-                    -- Visibilidade Chams
                     esp.HL.Enabled = CFG.Chams
                     esp.HL.FillColor = clr
 
-                    -- Visibilidade Skeleton
-                    for _, data in pairs(esp.Lines) do
-                        local line, part1Name, part2Name = data[1], data[2], data[3]
-                        local p1 = enemy:FindFirstChild(part1Name)
-                        local p2 = enemy:FindFirstChild(part2Name)
-                        
-                        if CFG.Skeleton and p1 and p2 then
-                            line.Adornee = p1
-                            line.CFrame = CFrame.new(Vector3.new(), p2.Position - p1.Position)
-                            line.Length = (p2.Position - p1.Position).Magnitude
-                            line.Color3 = clr
-                            line.Visible = true
-                        else
-                            line.Visible = false
-                        end
+                    if CFG.Hitbox and isEnemy then
+                        local size = math.clamp(CFG.HitboxSize, 1, 3)
+                        head.Size = Vector3.new(size, size, size)
+                        head.Transparency = 0.5
+                        head.CanCollide = false
                     end
 
-                    -- Atualiza Corner Box 2D Nativa
-                    local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    if CFG.CornerBox and onScreen then
-                        local top = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                        local bottom = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                        local height = math.abs(top.Y - bottom.Y)
-                        local width = height / 1.8
+                    -- AQUI ESTÁ A CORREÇÃO DA CAIXA GIGANTE (MATH DE BOUNDING BOX)
+                    local cf, size = enemy:GetBoundingBox()
+                    if size.Y < 1 then size = Vector3.new(4, 5, 4) end -- Força um tamanho normal se o jogo bugar
+                    
+                    local top3D = cf.Position + Vector3.new(0, size.Y / 2, 0)
+                    local bottom3D = cf.Position - Vector3.new(0, size.Y / 2, 0)
+                    
+                    local top2D = Camera:WorldToViewportPoint(top3D)
+                    local bottom2D = Camera:WorldToViewportPoint(bottom3D)
+                    local center2D, onScreen = Camera:WorldToViewportPoint(cf.Position)
+
+                    if CFG.CornerBox and onScreen and center2D.Z > 0 then
+                        local height = math.abs(top2D.Y - bottom2D.Y)
+                        local width = height / 1.6
                         
-                        esp.Box.Size = UDim2.new(0, width, 0, height)
-                        esp.Box.Position = UDim2.new(0, pos.X - (width/2), 0, top.Y)
-                        esp.BoxStroke.Color = clr
-                        esp.BoxGui.Enabled = true
+                        -- Trava de segurança: Se a caixa for maior que a tela (bug), esconde.
+                        if height > Camera.ViewportSize.Y * 1.5 then
+                            esp.BoxGui.Enabled = false
+                        else
+                            esp.Box.Size = UDim2.new(0, width, 0, height)
+                            esp.Box.Position = UDim2.new(0, center2D.X - (width/2), 0, top2D.Y)
+                            esp.BoxStroke.Color = clr
+                            esp.BoxGui.Enabled = true
+                        end
                     else
                         esp.BoxGui.Enabled = false
                     end
 
-                    -- HITBOX EXPANDER (Max 3)
-                    if CFG.Hitbox and isEnemy then
-                        local size = math.clamp(CFG.HitboxSize, 1, 3)
-                        head.Size = Vector3.new(size, size, size)
-                        head.Transparency = 0.6
-                        head.Material = Enum.Material.ForceField
-                        head.CanCollide = false
-                    end
-
-                    -- AIMBOT / AUTO SHOOT LOGIC
                     if isEnemy and onScreen then
-                        local distToCrosshair = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                        if distToCrosshair < closestDist then
+                        local distToCrosshair = (Vector2.new(center2D.X, center2D.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                        if distToCrosshair <= CFG.FOV and distToCrosshair < closestDist then
                             closestDist = distToCrosshair
-                            closestEnemy = head
+                            ClosestEnemyAim = head
                         end
+                    end
+                else
+                    if ActiveESP[enemy] then
+                        ActiveESP[enemy].Container:Destroy()
+                        ActiveESP[enemy].BoxGui:Destroy()
+                        ActiveESP[enemy] = nil
                     end
                 end
             end
         end
     end
 
-    -- EXECUTA AIMBOT / AUTO SHOOT (Se encontrou alguém dentro do FOV)
-    if closestEnemy then
-        if CFG.SilentAim then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestEnemy.Position)
-        end
-        if CFG.AutoShoot then
-            -- Força o toque na tela (Trigger)
-            pcall(function() mouse1press(); task.wait(0.01); mouse1release() end)
+    -- AUTO SHOOT (Usando fallback compatível com Delta Android)
+    if CFG.AutoShoot and ClosestEnemyAim then
+        pcall(function()
+            if mouse1press then
+                mouse1press()
+                task.wait(0.05)
+                mouse1release()
+            else
+                VirtualUser:Button1Down(Vector2.new(0, 0))
+                task.wait(0.05)
+                VirtualUser:Button1Up(Vector2.new(0, 0))
+            end
+        end)
+    end
+
+    -- NEON WEAPONS / CHAMS
+    if CFG.NeonChams then
+        for _, obj in pairs(Camera:GetDescendants()) do
+            if obj:IsA("BasePart") and not obj.Name:lower():match("arm") and not obj.Name:lower():match("hand") then
+                obj.Material = Enum.Material.Neon
+                obj.Color = Color3.fromRGB(0, 255, 255)
+            end
         end
     end
 
@@ -323,22 +320,6 @@ RunService.RenderStepped:Connect(function()
     -- NIGHT MODE
     Lighting.ClockTime = CFG.NightMode and 0 or 14
     Lighting.Ambient = CFG.NightMode and Color3.fromRGB(15, 15, 15) or Color3.fromRGB(128, 128, 128)
-
-    -- SKIN CHANGER & NEON WEAPONS (Aplica na Câmera/Mão)
-    if CFG.SkinChanger then
-        local mat = Enum.Material.Foil
-        if CFG.SkinMode == "Gold" then mat = Enum.Material.Foil
-        elseif CFG.SkinMode == "ForceField" then mat = Enum.Material.ForceField
-        elseif CFG.SkinMode == "Neon" then mat = Enum.Material.Neon
-        elseif CFG.SkinMode == "Diamond" then mat = Enum.Material.Ice end
-
-        for _, v in pairs(Camera:GetDescendants()) do
-            if v:IsA("BasePart") and not v.Name:match("Arm") and not v.Name:match("Hand") then
-                v.Material = mat
-                if CFG.SkinMode == "Neon" then v.Color = Color3.fromRGB(220, 20, 60) end
-            end
-        end
-    end
 end)
 
-Notification.new({ Title = "Neverlose Privado", Content = "Motor Dinâmico Ativado com Sucesso!", Duration = 5 })
+Notification.new({ Title = "Neverlose Privado", Content = "ESP Box Anti-Bug Carregado!", Duration = 5 })
