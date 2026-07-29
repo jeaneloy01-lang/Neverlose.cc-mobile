@@ -1,15 +1,16 @@
 -- =====================================================================
--- NEVERLOSE V3 - MOBILE EDITION (BLOX STRIKE)
+-- NEVERLOSE V3 - MOBILE EDITION (BLOX STRIKE - TEAM CHECK ESP)
 -- Configurado para Delta Executor (Android)
 -- =====================================================================
 
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
 ---------------------------------------------------------
--- BOTÃO FLUTUANTE MOBILE (INJETADO ANTES DA UI)
+-- BOTÃO FLUTUANTE MOBILE
 ---------------------------------------------------------
 local success, guiParent = pcall(function() return gethui() end)
 if not success then guiParent = LocalPlayer:WaitForChild("PlayerGui") end
@@ -50,13 +51,12 @@ local window = NeverLose:CreateWindow({
 	Logo = NeverLose.GlobalLogo,
 	Name = "Neverlose",
 	Content = "Blox Strike",
-	Size = NeverLose.Scales.Mobile, -- Escala de celular forçada
+	Size = NeverLose.Scales.Mobile,
 	ConfigFolder = "NeverLoseConfigs",
 	Enable3DRenderer = false,
 	Keybind = "Insert"
 });
 
--- Função do botão Mobile
 ToggleBtn.MouseButton1Click:Connect(function()
     window:ToggleInterface()
 end)
@@ -75,7 +75,7 @@ task.spawn(function()
 end)
 
 ---------------------------------------------------------
--- TAB 1: AIMBOT (Rage / Legit)
+-- TAB 1: AIMBOT
 ---------------------------------------------------------
 window:AddTabLabel('AIMBOT')
 local Rage = window:AddTab({ Icon = 'crosshairs', Name = "Rage" })
@@ -84,41 +84,17 @@ local Legit = window:AddTab({ Icon = 'mouse-scrollwheel', Name = "Legit" })
 local Raging = Rage:AddSection({ Name = "MAIN" })
 local Selection = Rage:AddSection({ Name = "SELECTION", Position = 'left' })
 local Other = Rage:AddSection({ Name = "OTHER", Position = 'right' })
-local AntiAim = Rage:AddSection({ Name = "ANTI-AIM", Position = 'right' })
 
 local EnabledRage = Raging:AddLabel('Enabled')
 EnabledRage:AddToggle({ Default = false, Flag = "Ragebot" })
-EnabledRage:AddOption():AddLabel("Force Shoot"):AddToggle({ Default = false, Flag = "FS" })
-
 local SlientAim = Raging:AddLabel('Silent Aim')
 SlientAim:AddToggle({ Default = false, Flag = "SLIENTAIM" })
-local opt = SlientAim:AddOption();
-opt:AddLabel('Perfect Silent-Aim'):AddToggle({ Default = false, Flag = "HideShot" })
-
-Raging:AddLabel('Automatic Fire'):AddToggle({ Default = false, Flag = "AutoFire" })
-Raging:AddLabel('Aim Through Walls'):AddToggle({ Default = false, Flag = "AWALLS" })
 Raging:AddLabel('Field of View'):AddSlider({ Min = 0, Max = 2600, Rounding = 1, Default = 100, Type = "Lv", Size = 100, Flag = "fov" })
-
-Selection:AddLabel("Target"):AddDropdown({ Default = 'Hightest Damage', Values = {'Hightest Damage', 'Automatic', 'Lowest Damage'}, Flag = "target_box" })
 Selection:AddLabel('Hitboxes'):AddDropdown({ Default = {'Head'}, Multi = true, Values = {'Head', 'Body', 'Arms', 'Legs'}, Flag = "hitboxes" })
-
-local hc = Selection:AddLabel('Hit Chance')
-hc:AddSlider({ Min = 0, Max = 100, Type = "%", Nums = {[0] = 'Auto'}, Flag = "hc", Size = 95, Default = 50 })
-local md = Selection:AddLabel('Min Damage')
-md:AddSlider({ Min = 0, Max = 100, Nums = {[0] = 'Auto'}, Flag = "md", Size = 95, Default = 15 })
-
-Other:AddLabel('History'):AddDropdown({ Default = 'High', Values = {'Minimum','Low','High','Maximum'}, Flag = "backtrack" })
 Other:AddLabel('Remove Recoil'):AddToggle({ Default = false, Flag = "removerecoil" })
-Other:AddLabel('Remove Spread'):AddToggle({ Default = false, Flag = "removespread" })
-Other:AddLabel('Double Tap'):AddToggle({ Default = false, Flag = "dt" })
-
-local aa_enable = AntiAim:AddLabel('Enabled');
-aa_enable:AddToggle({ Default = false, Flag = "aa" })
-AntiAim:AddLabel('Pitch'):AddDropdown({ Default = 'Down', Flag = "pitch", Values = {'Down','Center','Up','Fake Up','Fake Down'} })
-AntiAim:AddLabel('Yaw'):AddDropdown({ Default = 'Backwards', Flag = "yaw", Values = {'Backwards','Left','Right','Forwards'} })
 
 ---------------------------------------------------------
--- TAB 2: VISUALS (ESP)
+-- TAB 2: VISUALS (ESP TEAM CHECK)
 ---------------------------------------------------------
 window:AddTabLabel('VISUALS')
 local VisualsTab = window:AddTab({ Icon = 'eye', Name = "Visuals" })
@@ -133,150 +109,166 @@ EspSection:AddLabel('Name'):AddToggle({ Default = false, Flag = "esp_name", Call
 EspSection:AddLabel('Distance'):AddToggle({ Default = false, Flag = "esp_dist", Callback = function(v) EspConfigs.Distance = v end })
 EspSection:AddLabel('Gun ESP'):AddToggle({ Default = false, Flag = "esp_gun", Callback = function(v) EspConfigs.Gun = v end })
 
--- Motor do ESP
-local function CreateESP(player)
-	if player == LocalPlayer then return end
+---------------------------------------------------------
+-- MOTOR DO ESP (TEAM FOLDER CHECK)
+---------------------------------------------------------
+local ActiveESPs = {}
 
-	local Highlight = Instance.new("Highlight")
-	Highlight.Name = "NL_Chams"
-	Highlight.FillColor = Color3.fromRGB(150, 0, 255)
-	Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-	Highlight.FillTransparency = 0.5
-	Highlight.OutlineTransparency = 0
+-- Descobre qual pasta é a do time inimigo baseando-se em onde está o seu nome
+local function GetEnemyFolder()
+    local ctFolder = Workspace:FindFirstChild("Counter-Terrorists")
+    local tFolder = Workspace:FindFirstChild("Terrorists")
+    local myName = LocalPlayer.Name
 
-	local Billboard = Instance.new("BillboardGui")
-	Billboard.Name = "NL_ESP"
-	Billboard.AlwaysOnTop = true
-	Billboard.Size = UDim2.new(4, 0, 5.5, 0)
-	Billboard.StudsOffset = Vector3.new(0, -0.5, 0)
-	
-	local Box = Instance.new("Frame", Billboard)
-	Box.Size = UDim2.new(1, 0, 1, 0)
-	Box.BackgroundTransparency = 1
-	local BoxStroke = Instance.new("UIStroke", Box)
-	BoxStroke.Color = Color3.fromRGB(255, 255, 255)
-	BoxStroke.Thickness = 1
-	
-	local TopText = Instance.new("TextLabel", Billboard)
-	TopText.Size = UDim2.new(1, 0, 0, 15)
-	TopText.Position = UDim2.new(0, 0, 0, -18)
-	TopText.BackgroundTransparency = 1
-	TopText.Font = Enum.Font.Code
-	TopText.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TopText.TextStrokeTransparency = 0
-	TopText.TextSize = 12
-
-	local BottomText = Instance.new("TextLabel", Billboard)
-	BottomText.Size = UDim2.new(1, 0, 0, 15)
-	BottomText.Position = UDim2.new(0, 0, 1, 3)
-	BottomText.BackgroundTransparency = 1
-	BottomText.Font = Enum.Font.Code
-	BottomText.TextColor3 = Color3.fromRGB(200, 200, 200)
-	BottomText.TextStrokeTransparency = 0
-	BottomText.TextSize = 10
-
-	local HealthBG = Instance.new("Frame", Billboard)
-	HealthBG.Size = UDim2.new(0, 3, 1, 0)
-	HealthBG.Position = UDim2.new(0, -6, 0, 0)
-	HealthBG.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	HealthBG.BorderSizePixel = 0
-
-	local HealthBar = Instance.new("Frame", HealthBG)
-	HealthBar.AnchorPoint = Vector2.new(0, 1)
-	HealthBar.Position = UDim2.new(0, 0, 1, 0)
-	HealthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-	HealthBar.BorderSizePixel = 0
-
-	RunService.RenderStepped:Connect(function()
-		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
-			local char = player.Character
-			local hum = char.Humanoid
-			
-			if Highlight.Parent ~= char then Highlight.Parent = char end
-			if Billboard.Parent ~= char.HumanoidRootPart then Billboard.Parent = char.HumanoidRootPart end
-
-			Highlight.Enabled = EspConfigs.Chams
-			Billboard.Enabled = (EspConfigs.Box or EspConfigs.Name or EspConfigs.Distance or EspConfigs.Gun or EspConfigs.HealthBar)
-			
-			Box.Visible = EspConfigs.Box
-			HealthBG.Visible = EspConfigs.HealthBar
-
-			local topString = ""
-			if EspConfigs.Name then topString = topString .. player.Name .. " " end
-			
-			if EspConfigs.Distance and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-				local distStuds = (LocalPlayer.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-				local distMeters = math.floor(distStuds * 0.28)
-				topString = topString .. "[" .. distMeters .. "m]"
-			end
-			TopText.Text = topString
-			TopText.Visible = (EspConfigs.Name or EspConfigs.Distance)
-
-			if EspConfigs.Gun then
-				local tool = char:FindFirstChildOfClass("Tool")
-				BottomText.Text = tool and tool.Name or "None"
-				BottomText.Visible = true
-			else
-				BottomText.Visible = false
-			end
-
-			if EspConfigs.HealthBar then
-				local hpPercent = hum.Health / hum.MaxHealth
-				HealthBar.Size = UDim2.new(1, 0, hpPercent, 0)
-				HealthBar.BackgroundColor3 = Color3.fromRGB(255 - (hpPercent * 255), hpPercent * 255, 0)
-			end
-		else
-			Highlight.Parent = nil
-			Billboard.Parent = nil
-		end
-	end)
+    if ctFolder and ctFolder:FindFirstChild(myName) then
+        return tFolder
+    elseif tFolder and tFolder:FindFirstChild(myName) then
+        return ctFolder
+    end
+    return nil
 end
 
-for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
-Players.PlayerAdded:Connect(CreateESP)
+RunService.RenderStepped:Connect(function()
+    local enemyFolder = GetEnemyFolder()
+
+    -- Remove ESP de bonecos que morreram ou foram apagados
+    for model, espElements in pairs(ActiveESPs) do
+        if not model.Parent or (enemyFolder and model.Parent ~= enemyFolder) then
+            if espElements.Highlight then espElements.Highlight:Destroy() end
+            if espElements.Billboard then espElements.Billboard:Destroy() end
+            ActiveESPs[model] = nil
+        end
+    end
+
+    if not enemyFolder then return end
+
+    -- Aplica e atualiza o ESP apenas na pasta dos inimigos
+    for _, enemyModel in pairs(enemyFolder:GetChildren()) do
+        if enemyModel:IsA("Model") and enemyModel:FindFirstChild("HumanoidRootPart") then
+            
+            -- Cria a UI do inimigo se ainda não existir
+            if not ActiveESPs[enemyModel] then
+                local Highlight = Instance.new("Highlight")
+                Highlight.Name = "NL_Chams"
+                Highlight.FillColor = Color3.fromRGB(220, 20, 60) -- Vermelho avermelhado
+                Highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
+                Highlight.FillTransparency = 0.5
+                Highlight.OutlineTransparency = 0
+                Highlight.Parent = enemyModel
+
+                local Billboard = Instance.new("BillboardGui")
+                Billboard.Name = "NL_ESP"
+                Billboard.AlwaysOnTop = true
+                Billboard.Size = UDim2.new(4, 0, 5.5, 0)
+                Billboard.StudsOffset = Vector3.new(0, -0.5, 0)
+                Billboard.Parent = enemyModel:FindFirstChild("HumanoidRootPart")
+                
+                local Box = Instance.new("Frame", Billboard)
+                Box.Size = UDim2.new(1, 0, 1, 0)
+                Box.BackgroundTransparency = 1
+                local BoxStroke = Instance.new("UIStroke", Box)
+                BoxStroke.Color = Color3.fromRGB(255, 255, 255)
+                BoxStroke.Thickness = 1
+                
+                local TopText = Instance.new("TextLabel", Billboard)
+                TopText.Size = UDim2.new(1, 0, 0, 15)
+                TopText.Position = UDim2.new(0, 0, 0, -18)
+                TopText.BackgroundTransparency = 1
+                TopText.Font = Enum.Font.Code
+                TopText.TextColor3 = Color3.fromRGB(255, 255, 255)
+                TopText.TextStrokeTransparency = 0
+                TopText.TextSize = 12
+
+                local BottomText = Instance.new("TextLabel", Billboard)
+                BottomText.Size = UDim2.new(1, 0, 0, 15)
+                BottomText.Position = UDim2.new(0, 0, 1, 3)
+                BottomText.BackgroundTransparency = 1
+                BottomText.Font = Enum.Font.Code
+                BottomText.TextColor3 = Color3.fromRGB(200, 200, 200)
+                BottomText.TextStrokeTransparency = 0
+                BottomText.TextSize = 10
+
+                local HealthBG = Instance.new("Frame", Billboard)
+                HealthBG.Size = UDim2.new(0, 3, 1, 0)
+                HealthBG.Position = UDim2.new(0, -6, 0, 0)
+                HealthBG.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+                HealthBG.BorderSizePixel = 0
+
+                local HealthBar = Instance.new("Frame", HealthBG)
+                HealthBar.AnchorPoint = Vector2.new(0, 1)
+                HealthBar.Position = UDim2.new(0, 0, 1, 0)
+                HealthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                HealthBar.BorderSizePixel = 0
+
+                ActiveESPs[enemyModel] = {
+                    Highlight = Highlight, Billboard = Billboard, Box = Box, 
+                    TopText = TopText, BottomText = BottomText, 
+                    HealthBG = HealthBG, HealthBar = HealthBar
+                }
+            end
+
+            -- Atualiza as informações do ESP em tempo real
+            local esp = ActiveESPs[enemyModel]
+            local hum = enemyModel:FindFirstChild("Humanoid")
+
+            esp.Highlight.Enabled = EspConfigs.Chams
+            esp.Billboard.Enabled = (EspConfigs.Box or EspConfigs.Name or EspConfigs.Distance or EspConfigs.Gun or EspConfigs.HealthBar)
+            
+            esp.Box.Visible = EspConfigs.Box
+            esp.HealthBG.Visible = EspConfigs.HealthBar
+
+            local topString = ""
+            if EspConfigs.Name then topString = topString .. enemyModel.Name .. " " end
+            
+            if EspConfigs.Distance and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local distStuds = (LocalPlayer.Character.HumanoidRootPart.Position - enemyModel.HumanoidRootPart.Position).Magnitude
+                local distMeters = math.floor(distStuds * 0.28)
+                topString = topString .. "[" .. distMeters .. "m]"
+            end
+            esp.TopText.Text = topString
+            esp.TopText.Visible = (EspConfigs.Name or EspConfigs.Distance)
+
+            if EspConfigs.Gun then
+                local tool = enemyModel:FindFirstChildOfClass("Tool")
+                esp.BottomText.Text = tool and tool.Name or "None"
+                esp.BottomText.Visible = true
+            else
+                esp.BottomText.Visible = false
+            end
+
+            if EspConfigs.HealthBar and hum then
+                local hpPercent = hum.Health / hum.MaxHealth
+                esp.HealthBar.Size = UDim2.new(1, 0, hpPercent, 0)
+                esp.HealthBar.BackgroundColor3 = Color3.fromRGB(255 - (hpPercent * 255), hpPercent * 255, 0)
+            end
+        end
+    end
+end)
 
 ---------------------------------------------------------
--- CONFIGURAÇÕES (SETTINGS)
+-- CONFIGURAÇÕES E LOOP FINAL
 ---------------------------------------------------------
 window.UserSettings:AddLabel("Menu Keybind"):AddKeybind({
-	Default = 'Insert',
-	Callback = function(v) window.Keybind = v end,
+	Default = 'Insert', Callback = function(v) window.Keybind = v end,
 })
 
 window.UserSettings:AddLabel('Menu Scale'):AddDropdown({
-	Default = "Mobile",
-	Values = {"Default",'Large','Mobile','Small'},
+	Default = "Mobile", Values = {"Default",'Large','Mobile','Small'},
 	Callback = function(v) window:SetSize(NeverLose.Scales[v]) end,
 })
 
-window.UserSettings:AddLabel('3D Menu'):AddToggle({
-	Default = false,
-	Callback = function(v) window:Set3DRender(v) end,
-})
+Notification.new({ Title = "Neverlose Mobile", Content = "ESP Inteligente (Teams) Injetado!", Duration = 5 })
 
-Notification.new({ Title = "Neverlose Mobile", Content = "Injetado com sucesso pelo Delta!", Duration = 5 })
-
----------------------------------------------------------
--- LOOP DE INDICADORES VISUAIS
----------------------------------------------------------
 HC:SetRender(true);
 task.spawn(function()
 	while true do task.wait(3)
 		Watermark:SetRender(true);
-		HC:SetColor('Red')
-		HC:SetText("FL")
-		task.wait(3);
+		HC:SetColor('Red') HC:SetText("FL") task.wait(3);
 		Watermark:SetRender(false);
-		HC:SetColor('Green');
-		HC:SetText("AUTO")
-		task.wait(3)
+		HC:SetColor('Green'); HC:SetText("AUTO") task.wait(3)
 		Watermark:SetRender(true);
-		HC:SetColor('White')
-		HC:SetText("HC")
-		task.wait(1)
-		Watermark:SetRender(false);
-		HC:SetRender(false);
-		task.wait(1)
+		HC:SetColor('White') HC:SetText("HC") task.wait(1)
+		Watermark:SetRender(false); HC:SetRender(false); task.wait(1)
 		HC:SetRender(true);
 	end
 end)
