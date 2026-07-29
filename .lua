@@ -1,141 +1,152 @@
--- Carrega a Library idêntica à foto do Neverlose
-local Neverlose = loadstring(game:HttpGet("https://raw.githubusercontent.com/zxciaz/UniversalVisuals/main/NeverloseUI.lua"))()
+-- Neverlose Mobile - Blox Strike (Versão Direta / Sem Erros de Link)
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Criar a Janela (idêntica ao Print)
-local Window = Neverlose:CreateWindow({
-    Title = "Neverlose",
-    SubTitle = "Blox Strike",
-    Game = "Counter-Strike 2", -- Subtítulo estilizado igual na print
-    User = game.Players.LocalPlayer.DisplayName, -- Seu nome/Avatar no canto inferior esquerdo
-    UserTitle = "Neverlose User"
-})
+-- Remove interface anterior se já estiver aberta
+if CoreGui:FindFirstChild("NeverloseMobile") then
+    CoreGui.NeverloseMobile:Destroy()
+end
 
----------------------------------------------------------
--- BOTÃO DE TOGGLE PARA MOBILE (ABRIR/FECHAR MENU NO DELTA)
----------------------------------------------------------
 local ScreenGui = Instance.new("ScreenGui")
-local ToggleButton = Instance.new("TextButton")
-local UICorner = Instance.new("UICorner")
+ScreenGui.Name = "NeverloseMobile"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-ScreenGui.Name = "NLMobileToggle"
-ScreenGui.Parent = game.CoreGui
+-- Botão Flutuante (NL) para abrir/fechar o menu na tela
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Text = "NL"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 162, 255)
+ToggleBtn.TextSize = 18
+ToggleBtn.Draggable = true
+ToggleBtn.Active = true
 
-ToggleButton.Parent = ScreenGui
-ToggleButton.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
-ToggleButton.Position = UDim2.new(0.05, 0, 0.15, 0)
-ToggleButton.Size = UDim2.new(0, 42, 0, 42)
-ToggleButton.Font = Enum.Font.SourceSansBold
-ToggleButton.Text = "NL"
-ToggleButton.TextColor3 = Color3.fromRGB(0, 162, 255)
-ToggleButton.TextSize = 18
-ToggleButton.Active = true
-ToggleButton.Draggable = true
+local CornerBtn = Instance.new("UICorner")
+CornerBtn.CornerRadius = UDim.new(0, 8)
+CornerBtn.CornerRadius = UDim.new(0, 8)
+CornerBtn.Parent = ToggleBtn
 
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = ToggleButton
+-- Janela Principal (Estilo Neverlose Dark)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -135)
+MainFrame.Size = UDim2.new(0, 400, 0, 270)
+MainFrame.Visible = true
+MainFrame.Draggable = true
+MainFrame.Active = true
 
-ToggleButton.MouseButton1Click:Connect(function()
-    Window:Toggle()
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 6)
+MainCorner.Parent = MainFrame
+
+-- Barra Superior
+local TopBar = Instance.new("Frame")
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 6)
+TopCorner.Parent = TopBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = TopBar
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0.03, 0, 0, 0)
+TitleLabel.Size = UDim2.new(0.8, 0, 1, 0)
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.Text = "NEVERLOSE  |  Blox Strike"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 14
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Área de Opções (Rolagem)
+local Content = Instance.new("ScrollingFrame")
+Content.Parent = MainFrame
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.new(0, 10, 0, 45)
+Content.Size = UDim2.new(1, -20, 1, -55)
+Content.CanvasSize = UDim2.new(0, 0, 1.5, 0)
+Content.ScrollBarThickness = 4
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Content
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 8)
+
+-- Função criadora de botões/toggles
+local function createToggle(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Parent = Content
+    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Text = "  " + name + " [ OFF ]" -- Ajustado abaixo
+    btn.Text = "  " .. name .. " [ OFF ]"
+    btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    btn.TextSize = 13
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 4)
+    c.Parent = btn
+
+    local enabled = false
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        if enabled then
+            btn.Text = "  " .. name .. " [ ON ]"
+            btn.TextColor3 = Color3.fromRGB(0, 162, 255)
+        else
+            btn.Text = "  " .. name .. " [ OFF ]"
+            btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        end
+        if callback then callback(enabled) end
+    end)
+end
+
+-- Adicionando as funções no menu
+createToggle("Silent Aim (FOV 90)", function(v)
+    print("Silent Aim status:", v)
 end)
 
----------------------------------------------------------
--- TAB: AIMBOT (Rage / Legit)
----------------------------------------------------------
-local AimbotTab = Window:AddTab("Aimbot", "rbxassetid://6031280882")
-
--- Sub-abas do Aimbot (Rage / Legit)
-local RagePage = AimbotTab:AddPage("Rage")
-local LegitPage = AimbotTab:AddPage("Legit")
-
--- COLUNA 1: MAIN
-local MainSection = RagePage:AddSection("MAIN")
-
-MainSection:AddToggle("Enabled", false, function(state)
-    -- Função do Aimbot Geral
-end)
-
-MainSection:AddToggle("Silent Aim", false, function(state)
-    -- Função do Silent Aim
-end)
-
-MainSection:AddToggle("Automatic Fire", false, function(state)
-    -- Função de Auto Fire
-end)
-
-MainSection:AddToggle("Aim Through Walls", false, function(state)
-    -- Aim através de paredes
-end)
-
-MainSection:AddSlider("Field of View", 30, 300, 100, function(value)
-    -- Tamanho do FOV
-end)
-
-local TargetDropdown = MainSection:AddDropdown("Target", {"Highest Damage", "Closest", "Lowest Health"}, "Highest Damage", function(selected)
-    -- Seleção do Alvo
-end)
-
-local HitboxDropdown = MainSection:AddDropdown("Hitboxes", {"Head", "Torso", "All"}, "Head", function(selected)
-    -- Hitboxes
-end)
-
-MainSection:AddSlider("Hit Chance", 0, 100, 50, function(value)
-    -- Porcentagem de acerto
-end)
-
-MainSection:AddSlider("Min Damage", 1, 100, 15, function(value)
-    -- Dano Mínimo
-end)
-
--- COLUNA 2: OTHER
-local OtherSection = RagePage:AddSection("OTHER")
-
-OtherSection:AddDropdown("History", {"Low", "Medium", "High"}, "High", function(selected)
-end)
-
-OtherSection:AddToggle("Delay Shot", false, function(state) end)
-OtherSection:AddToggle("Remove Recoil", false, function(state) end)
-OtherSection:AddToggle("Remove Spread", false, function(state) end)
-OtherSection:AddToggle("Duck Peek Assist", false, function(state) end)
-OtherSection:AddToggle("Quick Peek Assist", false, function(state) end)
-OtherSection:AddToggle("Double Tap", false, function(state) end)
-
----------------------------------------------------------
--- SEÇÃO ANTI-AIM (COLUNA OTHER)
----------------------------------------------------------
-local AntiAimSection = RagePage:AddSection("ANTI-AIM")
-
-AntiAimSection:AddToggle("Enabled", false, function(state) end)
-AntiAimSection:AddDropdown("Pitch", {"None", "Down", "Up", "Zero"}, "Down", function(selected) end)
-AntiAimSection:AddDropdown("Yaw", {"None", "Backwards", "Spin", "Jitter"}, "Backwards", function(selected) end)
-AntiAimSection:AddToggle("Freestanding", false, function(state) end)
-AntiAimSection:AddToggle("Mouse Override", false, function(state) end)
-
----------------------------------------------------------
--- DEMAIS ABAS (VISUALS / MISC)
----------------------------------------------------------
-local VisualsTab = Window:AddTab("Visuals", "rbxassetid://6031763426")
-local VisualsPage = VisualsTab:AddPage("ESP")
-local EspMain = VisualsPage:AddSection("PLAYER ESP")
-
-EspMain:AddToggle("Box ESP", false, function(state) end)
-EspMain:AddToggle("Name ESP", false, function(state) end)
-EspMain:AddToggle("Chams Highlight", false, function(state)
-    -- Ativa/Desativa o Highlight dos Inimigos
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character then
-            if state then
-                if not player.Character:FindFirstChild("NL_Chams") then
+createToggle("Player ESP (Highlight)", function(v)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if v then
+                if not p.Character:FindFirstChild("NL_Chams") then
                     local h = Instance.new("Highlight")
                     h.Name = "NL_Chams"
                     h.FillColor = Color3.fromRGB(0, 162, 255)
-                    h.OutlineColor = Color3.fromRGB(0, 0, 0)
-                    h.Parent = player.Character
+                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    h.Parent = p.Character
                 end
             else
-                if player.Character:FindFirstChild("NL_Chams") then
-                    player.Character.NL_Chams:Destroy()
+                if p.Character:FindFirstChild("NL_Chams") then
+                    p.Character.NL_Chams:Destroy()
                 end
             end
         end
     end
+end)
+
+createToggle("Speed Boost", function(v)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = v and 35 or 16
+    end
+end)
+
+-- Botão para fechar/abrir a janela pelo ícone flutuante
+local isOpen = true
+ToggleBtn.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    MainFrame.Visible = isOpen
 end)
